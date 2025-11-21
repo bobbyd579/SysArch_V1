@@ -1,0 +1,2353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Chip Designer Application</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            padding-bottom: 200px; /* Space for debug window */
+        }
+        
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .library-panel {
+            width: 250px;
+            border-right: 2px solid #34495e;
+            background: #ecf0f1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .library-header {
+            padding: 10px;
+            background: #34495e;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .library-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chip-item {
+            background: white;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 10px;
+            cursor: move;
+            user-select: none;
+        }
+        
+        .chip-item:hover {
+            background: #e8f4f8;
+            border-color: #3498db;
+        }
+        
+        .chip-item-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .chip-item-pins {
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+        
+        .btn-create-chip {
+            width: 100%;
+            padding: 10px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .btn-create-chip:hover {
+            background: #2980b9;
+        }
+        
+        .btn-place-chip {
+            width: 100%;
+            padding: 10px;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .btn-place-chip:hover:not(:disabled) {
+            background: #229954;
+        }
+        
+        .btn-place-chip:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        .diagram-container {
+            flex: 1;
+            position: relative;
+            background: #f8f9fa;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .diagram-toolbar {
+            padding: 8px 15px;
+            background: #ecf0f1;
+            border-bottom: 1px solid #bdc3c7;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .diagram-toolbar label {
+            font-weight: bold;
+            color: #34495e;
+            font-size: 13px;
+        }
+        
+        .diagram-toolbar #zoomSlider {
+            flex: 1;
+            max-width: 300px;
+            cursor: pointer;
+        }
+        
+        .diagram-toolbar #zoomValue {
+            min-width: 50px;
+            text-align: right;
+            font-weight: bold;
+            color: #34495e;
+            font-size: 13px;
+        }
+        
+        #myDiagramDiv {
+            flex: 1;
+            width: 100%;
+            background: white;
+        }
+        
+        .pin-panel {
+            width: 300px;
+            border-left: 2px solid #34495e;
+            background: #ecf0f1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .pin-header {
+            padding: 10px;
+            background: #34495e;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .pin-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        
+        .chip-info {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #e8f4f8;
+            border-radius: 4px;
+            border: 1px solid #bdc3c7;
+        }
+        
+        .chip-info-item {
+            margin-bottom: 5px;
+            font-size: 13px;
+        }
+        
+        .chip-info-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .chip-info-item strong {
+            color: #34495e;
+            margin-right: 5px;
+        }
+        
+        .chip-info-item em {
+            color: #7f8c8d;
+            font-style: italic;
+        }
+        
+        .chip-name-editor {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        
+        .chip-name-editor label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #34495e;
+        }
+        
+        .chip-name-editor input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .pin-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            margin-bottom: 10px;
+        }
+        
+        .pin-table th {
+            background: #34495e;
+            color: white;
+            padding: 8px;
+            text-align: left;
+            font-size: 12px;
+        }
+        
+        .pin-table td {
+            padding: 6px;
+            border-bottom: 1px solid #ecf0f1;
+            font-size: 12px;
+        }
+        
+        .pin-table input {
+            width: 100%;
+            padding: 4px;
+            border: 1px solid #bdc3c7;
+            border-radius: 3px;
+        }
+        
+        .pin-table .pin-number {
+            width: 60px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .btn-remove-pin {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+        
+        .btn-remove-pin:hover {
+            background: #c0392b;
+        }
+        
+        .btn-add-pin {
+            width: 100%;
+            padding: 8px;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        
+        .btn-add-pin:hover {
+            background: #229954;
+        }
+        
+        .btn-add-pin:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+        
+        .no-selection {
+            text-align: center;
+            color: #7f8c8d;
+            padding: 20px;
+            font-style: italic;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+        }
+        
+        .modal-content {
+            background: white;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 400px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        
+        .modal-header {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+        
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+        
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .btn-danger:hover:not(:disabled) {
+            background: #c0392b;
+        }
+        
+        .btn-danger:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        .debug-window {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 200px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border-top: 2px solid #007acc;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 12px;
+        }
+        
+        .debug-header {
+            background: #007acc;
+            color: white;
+            padding: 5px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .debug-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 5px 10px;
+            line-height: 1.4;
+        }
+        
+        .debug-log-entry {
+            margin: 2px 0;
+            padding: 2px 0;
+            border-bottom: 1px solid #333;
+        }
+        
+        .debug-log-entry.error {
+            color: #f48771;
+        }
+        
+        .debug-log-entry.warn {
+            color: #dcdcaa;
+        }
+        
+        .debug-log-entry.info {
+            color: #4ec9b0;
+        }
+        
+        .debug-log-entry.log {
+            color: #d4d4d4;
+        }
+        
+        .debug-timestamp {
+            color: #858585;
+            margin-right: 8px;
+        }
+        
+        .debug-clear-btn {
+            background: #3c3c3c;
+            color: white;
+            border: 1px solid #555;
+            padding: 2px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+        
+        .debug-clear-btn:hover {
+            background: #4c4c4c;
+        }
+        
+        .debug-toggle-btn {
+            background: #3c3c3c;
+            color: white;
+            border: 1px solid #555;
+            padding: 2px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+            margin-right: 5px;
+        }
+        
+        .debug-toggle-btn:hover {
+            background: #4c4c4c;
+        }
+        
+        .debug-window.collapsed {
+            height: 30px;
+        }
+        
+        .debug-window.collapsed .debug-content {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Chip Designer</h1>
+        <div>
+            <button class="btn btn-primary" onclick="saveDiagram()">Save Diagram</button>
+            <button class="btn btn-secondary" onclick="loadDiagram()">Load Diagram</button>
+        </div>
+    </div>
+    
+    <div class="main-container">
+        <!-- Library Panel (Left) -->
+        <div class="library-panel">
+            <div class="library-header">Chip Library</div>
+            <div class="library-content">
+                <button class="btn-create-chip" onclick="showCreateChipDialog()">+ Create New Chip</button>
+                <button id="placeChipBtn" class="btn-place-chip" onclick="placeSelectedChip()" disabled>Place Selected Chip</button>
+                <div id="myPaletteDiv" style="width: 100%; flex: 1; min-height: 200px; border: 1px solid #bdc3c7; background: white;"></div>
+            </div>
+        </div>
+        
+        <!-- Main Diagram -->
+        <div class="diagram-container">
+            <div class="diagram-toolbar">
+                <label for="zoomSlider">Zoom:</label>
+                <input type="range" id="zoomSlider" min="10" max="100" value="100" step="5" oninput="updateZoom(this.value)">
+                <span id="zoomValue">100%</span>
+                <button class="btn btn-danger" onclick="deleteSelectedChip()" id="deleteChipBtn" disabled style="margin-left: 20px;">Delete Selected Chip</button>
+            </div>
+            <div id="myDiagramDiv"></div>
+        </div>
+        
+        <!-- Pin Management Panel (Right) -->
+        <div class="pin-panel">
+            <div class="pin-header">Pin Management</div>
+            <div class="pin-content">
+                <div id="pinTableContainer">
+                    <div class="no-selection">Select a chip to manage pins</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Debug Logging Window -->
+    <div id="debugWindow" class="debug-window">
+        <div class="debug-header">
+            <div>
+                <button class="debug-toggle-btn" onclick="toggleDebugWindow()">Toggle</button>
+                <span>Debug Console</span>
+            </div>
+            <button class="debug-clear-btn" onclick="clearDebugLog()">Clear</button>
+        </div>
+        <div class="debug-content" id="debugContent"></div>
+    </div>
+    
+    <!-- Create Chip Modal -->
+    <div id="createChipModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Create New Chip</div>
+            <div class="form-group">
+                <label for="chipNameInput">Chip Name:</label>
+                <input type="text" id="chipNameInput" placeholder="e.g., 555 Timer" />
+            </div>
+            <div class="form-group">
+                <label for="pinCountInput">Initial Pin Count (0-100):</label>
+                <input type="number" id="pinCountInput" min="0" max="100" value="0" />
+            </div>
+            <div class="modal-buttons">
+                <button type="button" class="btn btn-secondary" onclick="closeCreateChipDialog()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="createNewChip(event)">Create</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Save Diagram Modal -->
+    <div id="saveDiagramModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Save Diagram</div>
+            <div class="form-group">
+                <label for="diagramNameInput">Diagram Name:</label>
+                <input type="text" id="diagramNameInput" placeholder="Enter diagram name">
+            </div>
+            <div class="modal-buttons">
+                <button type="button" class="btn btn-secondary" onclick="closeSaveDiagramDialog()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveDiagramWithName()">Save</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Load Diagram Modal -->
+    <div id="loadDiagramModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">Load Diagram</div>
+            <div style="max-height: 400px; overflow-y: auto; margin: 15px 0;">
+                <div id="savedDiagramsList">
+                    <div class="no-selection">No saved diagrams found</div>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button type="button" class="btn btn-secondary" onclick="closeLoadDiagramDialog()">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Try multiple paths for GoJS library -->
+    <script>
+        // Try to load go.js with error handling
+        function loadScript(src, onSuccess, onError) {
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = function() {
+                console.log('Successfully loaded:', src);
+                if (onSuccess) onSuccess();
+            };
+            script.onerror = function() {
+                console.error('Failed to load:', src);
+                if (onError) onError();
+            };
+            document.head.appendChild(script);
+        }
+        
+        // Try different paths
+        const paths = [
+            'release/go.js',
+            '../release/go.js',
+            './release/go.js'
+        ];
+        
+        let goLoaded = false;
+        let pathIndex = 0;
+        
+        function tryLoadGoJS() {
+            if (goLoaded || typeof go !== 'undefined') {
+                console.log('GoJS already loaded');
+                loadExtensions();
+                return;
+            }
+            
+            if (pathIndex >= paths.length) {
+                console.error('All paths failed. GoJS not loaded.');
+                alert('Error: Could not load GoJS library. Please ensure the file exists at one of these paths:\n' + paths.join('\n'));
+                return;
+            }
+            
+            const path = paths[pathIndex];
+            console.log('Trying to load GoJS from:', path);
+            loadScript(path, function() {
+                // Wait a bit for go to be defined
+                setTimeout(function() {
+                    if (typeof go !== 'undefined') {
+                        goLoaded = true;
+                        console.log('GoJS loaded successfully from:', path);
+                        loadExtensions();
+                    } else {
+                        console.warn('Script loaded but go is still undefined, trying next path');
+                        pathIndex++;
+                        tryLoadGoJS();
+                    }
+                }, 100);
+            }, function() {
+                pathIndex++;
+                tryLoadGoJS();
+            });
+        }
+        
+        function loadExtensions() {
+            if (typeof go === 'undefined') {
+                console.error('Cannot load extensions: go is not defined');
+                return;
+            }
+            
+            let polylineLoaded = false;
+            let orthogonalLoaded = false;
+            
+            let initCalled = false;
+            
+            function checkAllLoaded() {
+                if (polylineLoaded && orthogonalLoaded && !initCalled) {
+                    console.log('All extensions loaded, calling init()');
+                    initCalled = true;
+                    // Wait a moment for extensions to register
+                    setTimeout(function() {
+                        if (typeof init === 'function') {
+                            try {
+                                console.log('Calling init() function...');
+                                init();
+                                console.log('init() completed successfully');
+                            } catch (error) {
+                                console.error('Error in init():', error);
+                                alert('Error initializing application: ' + error.message);
+                            }
+                        } else {
+                            console.error('init() function not found!');
+                        }
+                    }, 200);
+                }
+            }
+            
+            loadScript('extensions/PolylineLinkingTool.js', 
+                function() { 
+                    console.log('PolylineLinkingTool.js loaded'); 
+                    polylineLoaded = true;
+                    checkAllLoaded();
+                },
+                function() { 
+                    console.warn('PolylineLinkingTool.js failed, trying ../extensions/'); 
+                    loadScript('../extensions/PolylineLinkingTool.js', 
+                        function() { 
+                            console.log('PolylineLinkingTool.js loaded from ../extensions/'); 
+                            polylineLoaded = true;
+                            checkAllLoaded();
+                        },
+                        function() { 
+                            console.error('PolylineLinkingTool.js failed from both paths');
+                            polylineLoaded = true; // Mark as done even if failed
+                            checkAllLoaded();
+                        }
+                    );
+                }
+            );
+            
+            loadScript('extensions/OrthogonalLinkReshapingTool.js',
+                function() { 
+                    console.log('OrthogonalLinkReshapingTool.js loaded'); 
+                    orthogonalLoaded = true;
+                    checkAllLoaded();
+                },
+                function() { 
+                    console.warn('OrthogonalLinkReshapingTool.js failed, trying ../extensions/');
+                    loadScript('../extensions/OrthogonalLinkReshapingTool.js',
+                        function() { 
+                            console.log('OrthogonalLinkReshapingTool.js loaded from ../extensions/'); 
+                            orthogonalLoaded = true;
+                            checkAllLoaded();
+                        },
+                        function() { 
+                            console.error('OrthogonalLinkReshapingTool.js failed from both paths');
+                            orthogonalLoaded = true; // Mark as done even if failed
+                            checkAllLoaded();
+                        }
+                    );
+                }
+            );
+        }
+        
+        // Start loading when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', tryLoadGoJS);
+        } else {
+            tryLoadGoJS();
+        }
+    </script>
+    
+    <script>
+        // Check if scripts loaded
+        window.addEventListener('load', function() {
+            console.log('Window loaded event fired');
+            console.log('Checking if go is defined after scripts load:', typeof go);
+            if (typeof go === 'undefined') {
+                console.error('GoJS library failed to load!');
+                console.error('Please check:');
+                console.error('1. File path: ../release/go.js');
+                console.error('2. Network tab for 404 errors');
+                console.error('3. Browser console for script errors');
+            }
+        });
+    </script>
+    
+    <script>
+        let myDiagram;
+        let myPalette;
+        let selectedChipNode = null;
+        let selectedPaletteChip = null; // Track selected chip in palette
+        let chipLibrary = [];
+        let instanceCounter = 0; // Counter for unique instance IDs
+        const STORAGE_KEY_LIBRARY_INDEX = 'chipDesigner_library_index'; // Master index of all chip IDs
+        const STORAGE_KEY_CHIP_PREFIX = 'chipDesigner_chip_'; // Prefix for individual chip storage (like files)
+        const STORAGE_KEY_DIAGRAMS = 'chipDesigner_diagrams'; // Store multiple named diagrams
+        
+        // Debug logging setup
+        const originalConsoleLog = console.log;
+        const originalConsoleError = console.error;
+        const originalConsoleWarn = console.warn;
+        const originalConsoleInfo = console.info;
+        
+        function addDebugLog(message, type = 'log') {
+            const debugContent = document.getElementById('debugContent');
+            if (!debugContent) return;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = 'debug-log-entry ' + type;
+            
+            const timestampSpan = document.createElement('span');
+            timestampSpan.className = 'debug-timestamp';
+            timestampSpan.textContent = '[' + timestamp + ']';
+            
+            const messageSpan = document.createElement('span');
+            if (typeof message === 'object') {
+                messageSpan.textContent = JSON.stringify(message, null, 2);
+            } else {
+                messageSpan.textContent = String(message);
+            }
+            
+            logEntry.appendChild(timestampSpan);
+            logEntry.appendChild(messageSpan);
+            debugContent.appendChild(logEntry);
+            
+            // Auto-scroll to bottom
+            debugContent.scrollTop = debugContent.scrollHeight;
+            
+            // Keep only last 500 entries
+            while (debugContent.children.length > 500) {
+                debugContent.removeChild(debugContent.firstChild);
+            }
+        }
+        
+        // Override console methods
+        console.log = function(...args) {
+            originalConsoleLog.apply(console, args);
+            addDebugLog(args.join(' '), 'log');
+        };
+        
+        console.error = function(...args) {
+            originalConsoleError.apply(console, args);
+            addDebugLog(args.join(' '), 'error');
+        };
+        
+        console.warn = function(...args) {
+            originalConsoleWarn.apply(console, args);
+            addDebugLog(args.join(' '), 'warn');
+        };
+        
+        console.info = function(...args) {
+            originalConsoleInfo.apply(console, args);
+            addDebugLog(args.join(' '), 'info');
+        };
+        
+        // Toggle debug window
+        function toggleDebugWindow() {
+            const debugWindow = document.getElementById('debugWindow');
+            if (debugWindow) {
+                debugWindow.classList.toggle('collapsed');
+            }
+        }
+        
+        // Clear debug log
+        function clearDebugLog() {
+            const debugContent = document.getElementById('debugContent');
+            if (debugContent) {
+                debugContent.innerHTML = '';
+            }
+        }
+        
+        // Initialize the application
+        function init() {
+            console.log('=== Chip Designer Initializing ===');
+            console.log('Debug window ready');
+            console.log('Checking if go is defined:', typeof go);
+            
+            if (typeof go === 'undefined') {
+                console.error('GoJS library not loaded! Cannot initialize.');
+                alert('Error: GoJS library not loaded. Please refresh the page.');
+                return;
+            }
+            
+            console.log('GoJS library loaded, proceeding with initialization');
+            
+            // Initialize main diagram
+            myDiagram = new go.Diagram('myDiagramDiv', {
+                minScale: 0.1,  // 10% minimum zoom
+                maxScale: 1.0,  // 100% maximum zoom
+                initialScale: 1.0,  // Start at 100%
+                'undoManager.isEnabled': true,
+                allowDelete: true,  // Enable delete functionality
+                linkReshapingTool: new OrthogonalLinkReshapingTool(),
+                'draggingTool.isGridSnapEnabled': true,
+                'draggingTool.gridSnapCellSize': new go.Size(10, 10),
+                initialAutoScale: go.AutoScale.Uniform
+            });
+            
+            // Enable polyline linking tool
+            myDiagram.toolManager.linkingTool = new PolylineLinkingTool();
+            myDiagram.toolManager.linkingTool.temporaryLink.routing = go.Routing.Orthogonal;
+            
+            // Listen for selection changes
+            myDiagram.addDiagramListener('ChangedSelection', updatePinTable);
+            
+            // Initialize palette
+            console.log('Initializing palette...');
+            const paletteDiv = document.getElementById('myPaletteDiv');
+            if (!paletteDiv) {
+                console.error('Palette div not found!');
+                alert('Error: Palette container not found. Please refresh the page.');
+                return;
+            }
+            console.log('Palette div found, creating palette');
+            console.log('Palette div dimensions:', paletteDiv.offsetWidth, 'x', paletteDiv.offsetHeight);
+            
+            try {
+                myPalette = new go.Palette('myPaletteDiv', {
+                    'animationManager.isEnabled': false,
+                    layout: new go.GridLayout({ 
+                        wrappingColumn: 1,
+                        cellSize: new go.Size(1, 1),
+                        spacing: new go.Size(5, 5),
+                        alignment: go.Spot.TopLeft
+                    }),
+                    'draggingTool.isEnabled': true,
+                    'dragSelectingTool.isEnabled': false,
+                    allowCopy: false,
+                    allowDelete: false,
+                    contentAlignment: go.Spot.TopLeft,
+                    initialAutoScale: go.AutoScale.None,
+                    initialContentAlignment: go.Spot.TopLeft
+                });
+                
+                console.log('Palette created successfully:', myPalette);
+                console.log('Palette instance check:', myPalette instanceof go.Palette);
+                
+                // Don't show context menus in palette
+                myPalette.toolManager.contextMenuTool.isEnabled = false;
+                
+                // Listen for selection changes in the palette
+                myPalette.addDiagramListener('ChangedSelection', (e) => {
+                    const selection = e.diagram.selection;
+                    const firstSelected = selection.first();
+                    if (firstSelected instanceof go.Node) {
+                        selectedPaletteChip = firstSelected.data;
+                        const placeBtn = document.getElementById('placeChipBtn');
+                        if (placeBtn) {
+                            placeBtn.disabled = false;
+                        }
+                        console.log('Palette chip selected:', selectedPaletteChip.name);
+                    } else {
+                        selectedPaletteChip = null;
+                        const placeBtn = document.getElementById('placeChipBtn');
+                        if (placeBtn) {
+                            placeBtn.disabled = true;
+                        }
+                    }
+                });
+                
+                // Set up palette model - initialize with empty arrays
+                myPalette.model = new go.GraphLinksModel([], []);
+                console.log('Palette model set:', myPalette.model);
+            } catch (error) {
+                console.error('Error creating palette:', error);
+                alert('Error creating palette: ' + error.message);
+                myPalette = null;
+            }
+            
+            // Create chip node template
+            const chipTemplate = createChipTemplate();
+            myDiagram.nodeTemplateMap.add('chip', chipTemplate);
+            
+            // Create a simplified/scaled template for the palette
+            const paletteChipTemplate = createChipTemplate();
+            paletteChipTemplate.scale = 0.5; // Scale down for palette
+            myPalette.nodeTemplateMap.add('chip', paletteChipTemplate);
+            
+            // Also set as default template in case category is missing
+            myPalette.nodeTemplate = paletteChipTemplate;
+            
+            console.log('Palette template map setup complete');
+            console.log('Palette has chip template:', myPalette.nodeTemplateMap.has('chip'));
+            console.log('Palette default template set:', myPalette.nodeTemplate ? 'yes' : 'no');
+            
+            // Also set as default template in case category is missing
+            myPalette.nodeTemplate = paletteChipTemplate;
+            
+            console.log('Palette template map setup complete');
+            console.log('Palette has chip template:', myPalette.nodeTemplateMap.has('chip'));
+            
+            // Create link template
+            myDiagram.linkTemplate = new go.Link({
+                reshapable: true,
+                resegmentable: true,
+                routing: go.Routing.Orthogonal,
+                adjusting: go.LinkAdjusting.End,
+                corner: 3,
+                relinkableFrom: true,
+                relinkableTo: true,
+                selectionAdorned: false,
+                cursor: 'pointer'
+            })
+            .bindTwoWay('points')
+            .add(
+                new go.Shape({ name: 'SHAPE', strokeWidth: 2, stroke: 'black' })
+            );
+            
+            // Set up model
+            myDiagram.model = new go.GraphLinksModel({
+                linkFromPortIdProperty: 'fromPort',
+                linkToPortIdProperty: 'toPort'
+            });
+            
+            // Load library and diagram
+            loadChipLibrary();
+            loadDiagram();
+            
+            // Update library display after a short delay to ensure palette is ready
+            setTimeout(() => {
+                updateLibraryDisplay();
+            }, 100);
+        }
+        
+        // Create chip node template
+        function createChipTemplate() {
+            // Pin template for left side
+            const leftPinTemplate = new go.Panel('Auto', {
+                fromLinkable: true,
+                toLinkable: true,
+                cursor: 'pointer'
+            })
+            .bind('portId', 'number', (v) => String(v))
+            .bind('fromSpot', '', () => go.Spot.Left)
+            .bind('toSpot', '', () => go.Spot.Left)
+            .add(
+                new go.Shape('Rectangle', {
+                    name: 'SHAPE',
+                    width: 25,
+                    height: 20,
+                    stroke: 'black',
+                    strokeWidth: 1,
+                    fill: 'white',
+                    margin: new go.Margin(4.5, 0)
+                }),
+                new go.TextBlock({
+                    font: '12px sans-serif'
+                })
+                .bind('text', 'number')
+            );
+            
+            // Pin template for right side
+            const rightPinTemplate = new go.Panel('Auto', {
+                fromLinkable: true,
+                toLinkable: true,
+                cursor: 'pointer'
+            })
+            .bind('portId', 'number', (v) => String(v))
+            .bind('fromSpot', '', () => go.Spot.Right)
+            .bind('toSpot', '', () => go.Spot.Right)
+            .add(
+                new go.Shape('Rectangle', {
+                    name: 'SHAPE',
+                    width: 25,
+                    height: 20,
+                    stroke: 'black',
+                    strokeWidth: 1,
+                    fill: 'white',
+                    margin: new go.Margin(4.5, 0)
+                }),
+                new go.TextBlock({
+                    font: '12px sans-serif'
+                })
+                .bind('text', 'number')
+            );
+            
+            // Chip template
+            return new go.Node('Auto', {
+                locationSpot: new go.Spot(0.5, 0.5, 0, 5),
+                selectable: true,
+                fromSpot: go.Spot.AllSides,
+                toSpot: go.Spot.AllSides,
+                toolTip: (node) => {
+                    const data = node.data;
+                    return `Chip: ${data.name}\nPins: ${data.pins ? data.pins.length : 0}`;
+                },
+                cursor: 'pointer',
+                contextMenu: go.GraphObject.build('ContextMenu')
+                    .add(
+                        go.GraphObject.build('ContextMenuButton')
+                            .add(new go.TextBlock('Delete'))
+                            .set('click', (e, button) => {
+                                const node = button.part.adornedObject;
+                                e.diagram.commit(() => {
+                                    e.diagram.model.removeNodeData(node.data);
+                                }, 'delete chip');
+                            })
+                    )
+            })
+            .bindTwoWay('location', 'loc', go.Point.parse, go.Point.stringify)
+            .add(
+                new go.Panel('Horizontal').add(
+                    new go.Panel('Vertical', {
+                        itemTemplate: leftPinTemplate
+                    })
+                    .bind('itemArray', 'pins', (pins) => {
+                        if (!pins || pins.length === 0) return [];
+                        // Left side pins (first half)
+                        const mid = Math.ceil(pins.length / 2);
+                        return pins.slice(0, mid);
+                    }),
+                    new go.Panel('Spot').add(
+                        new go.Shape({
+                            stroke: 'black',
+                            fill: 'white',
+                            width: 120
+                        })
+                        .bind('geometryString', 'pins', (pins) => {
+                            if (!pins || pins.length === 0) {
+                                return 'F M 0 0 H 20 V 40 H 0 V 0';
+                            }
+                            const mid = Math.ceil(pins.length / 2);
+                            const leftPins = pins.slice(0, mid);
+                            const height = Math.max(40, leftPins.length * 30 + 16);
+                            return 'F M 0 0 H 8 A 1 4 0 0 0 12 0 H 20 V' + height + 'H 0 V 0';
+                        }),
+                        new go.Shape('Circle', {
+                            stroke: 'black',
+                            fill: 'transparent',
+                            width: 8,
+                            alignment: new go.Spot(0, 0, 12, 10)
+                        }),
+                        new go.TextBlock({
+                            alignment: go.Spot.Center,
+                            editable: true
+                        })
+                        .bindTwoWay('text', 'name')
+                    ),
+                    new go.Panel('Vertical', {
+                        itemTemplate: rightPinTemplate
+                    })
+                    .bind('itemArray', 'pins', (pins) => {
+                        if (!pins || pins.length === 0) return [];
+                        // Right side pins (second half)
+                        const mid = Math.ceil(pins.length / 2);
+                        return pins.slice(mid).reverse();
+                    })
+                )
+            );
+        }
+        
+        // Create new chip data structure
+        function createNewChipData(name, pinCount) {
+            const pins = [];
+            for (let i = 1; i <= pinCount; i++) {
+                pins.push({
+                    number: i,
+                    name: ''
+                });
+            }
+            
+            return {
+                id: 'chip_' + Date.now(),
+                name: name,
+                pins: pins,
+                orientation: 'vertical'
+            };
+        }
+        
+        // Show create chip dialog
+        function showCreateChipDialog() {
+            document.getElementById('createChipModal').style.display = 'block';
+            document.getElementById('chipNameInput').value = '';
+            document.getElementById('pinCountInput').value = '0';
+            document.getElementById('chipNameInput').focus();
+        }
+        
+        // Close create chip dialog
+        function closeCreateChipDialog() {
+            document.getElementById('createChipModal').style.display = 'none';
+        }
+        
+        // Create new chip
+        function createNewChip(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
+            try {
+                const nameInput = document.getElementById('chipNameInput');
+                const pinCountInput = document.getElementById('pinCountInput');
+                
+                if (!nameInput || !pinCountInput) {
+                    console.error('Input elements not found');
+                    return;
+                }
+                
+                const name = nameInput.value.trim();
+                const pinCount = parseInt(pinCountInput.value) || 0;
+                
+                if (!name) {
+                    alert('Please enter a chip name');
+                    nameInput.focus();
+                    return;
+                }
+                
+                if (pinCount < 0 || pinCount > 100) {
+                    alert('Pin count must be between 0 and 100');
+                    pinCountInput.focus();
+                    return;
+                }
+                
+                const chipData = createNewChipData(name, pinCount);
+                console.log('Creating chip:', chipData);
+                
+                // Add chip to library using file-based system (prevents duplicates)
+                if (!addChipToLibrary(chipData)) {
+                    alert('Error: A chip with this ID already exists. This should not happen.');
+                    return;
+                }
+                
+                console.log('Chip library now has', chipLibrary.length, 'chips');
+                
+                console.log('Checking palette... myPalette =', myPalette);
+                console.log('myPalette type:', typeof myPalette);
+                
+                // Check if go is defined before using it
+                if (typeof go !== 'undefined') {
+                    console.log('go is defined, checking palette instance');
+                    console.log('myPalette instanceof go.Palette:', myPalette instanceof go.Palette);
+                } else {
+                    console.error('go is not defined! GoJS library may not have loaded.');
+                }
+                
+                if (myPalette && typeof go !== 'undefined' && myPalette instanceof go.Palette) {
+                    console.log('Palette is ready, updating display');
+                    updateLibraryDisplay();
+                } else {
+                    console.warn('Palette not initialized, chip saved but not displayed');
+                    console.warn('myPalette value:', myPalette);
+                    console.warn('typeof go:', typeof go);
+                    
+                    // Don't try to initialize here - just warn and save the chip
+                    // The palette should be initialized in init() which runs on page load
+                    if (typeof go === 'undefined') {
+                        alert('GoJS library not loaded. Please refresh the page. Chip has been saved to library.');
+                    } else {
+                        alert('Palette not initialized. Please refresh the page. Chip has been saved to library.');
+                    }
+                }
+                
+                closeCreateChipDialog();
+            } catch (error) {
+                console.error('Error creating chip:', error);
+                alert('Error creating chip: ' + error.message);
+            }
+        }
+        
+        // Update library display
+        // IMPORTANT: This function should ONLY read from chipLibrary and display it
+        // It should NEVER modify chipLibrary or create new chips
+        function updateLibraryDisplay() {
+            if (!myPalette) {
+                console.warn('Palette not initialized yet');
+                return;
+            }
+            
+            // Record library size before update (for verification)
+            const librarySizeBeforeUpdate = chipLibrary.length;
+            
+            try {
+                // First, check for and remove duplicates in chipLibrary itself
+                const seenIds = new Set();
+                const uniqueChips = [];
+                const duplicatesFound = [];
+                
+                chipLibrary.forEach((chip, index) => {
+                    if (seenIds.has(chip.id)) {
+                        console.error('DUPLICATE FOUND in chipLibrary at index', index, ':', chip.id, chip.name);
+                        duplicatesFound.push({ index, id: chip.id, name: chip.name });
+                    } else {
+                        seenIds.add(chip.id);
+                        uniqueChips.push(chip);
+                    }
+                });
+                
+                if (duplicatesFound.length > 0) {
+                    console.error('Found', duplicatesFound.length, 'duplicate(s) in chipLibrary!');
+                    console.error('Duplicates:', JSON.stringify(duplicatesFound, null, 2));
+                    // Update chipLibrary to remove duplicates
+                    chipLibrary.length = 0;
+                    chipLibrary.push(...uniqueChips);
+                    saveChipLibrary();
+                    console.error('Removed duplicates from chipLibrary, now has', chipLibrary.length, 'chips');
+                }
+                
+                // Create palette node data - use a Map to prevent duplicates by key
+                const nodeDataMap = new Map();
+                chipLibrary.forEach((chip) => {
+                    // Only add if we haven't seen this ID before (prevent duplicates)
+                    if (!nodeDataMap.has(chip.id)) {
+                        nodeDataMap.set(chip.id, {
+                            key: chip.id,
+                            category: 'chip',
+                            name: chip.name,
+                            pins: chip.pins ? chip.pins.map(p => ({ number: p.number, name: p.name })) : [],
+                            orientation: chip.orientation || 'vertical'
+                        });
+                    } else {
+                        console.error('ERROR: Duplicate chip ID found when building palette:', chip.id, chip.name);
+                    }
+                });
+                
+                // Convert map to array
+                const nodeDataArray = Array.from(nodeDataMap.values());
+                
+                console.log('Built nodeDataArray with', nodeDataArray.length, 'unique chips from', chipLibrary.length, 'library chips');
+                
+                // Update the palette model by setting nodeDataArray directly
+                console.log('Updating palette with', nodeDataArray.length, 'chips');
+                if (nodeDataArray.length > 0) {
+                    console.log('First chip data:', JSON.stringify(nodeDataArray[0], null, 2));
+                }
+                
+                // Check template availability before updating
+                console.log('Checking palette template map...');
+                console.log('Has chip template:', myPalette.nodeTemplateMap.has('chip'));
+                console.log('Default nodeTemplate:', myPalette.nodeTemplate ? 'exists' : 'missing');
+                
+                // Clear existing nodes first - remove all nodes, then add new ones
+                myPalette.startTransaction('update library');
+                
+                // Get all existing node keys BEFORE clearing
+                const existingKeysBefore = myPalette.model.nodeDataArray.map(n => n.key);
+                console.log('Clearing', existingKeysBefore.length, 'existing palette nodes. Keys:', existingKeysBefore);
+                
+                // Also get all existing parts (visual nodes) and remove them
+                const existingParts = [];
+                myPalette.nodes.each(node => {
+                    existingParts.push(node);
+                });
+                console.log('Found', existingParts.length, 'visual parts to remove');
+                
+                // Remove all existing nodes by key
+                existingKeysBefore.forEach(key => {
+                    const existingData = myPalette.model.findNodeDataForKey(key);
+                    if (existingData) {
+                        myPalette.model.removeNodeData(existingData);
+                    }
+                });
+                
+                // Also remove all visual parts directly
+                existingParts.forEach(part => {
+                    if (part && part.data) {
+                        myPalette.remove(part);
+                    }
+                });
+                
+                // Verify all nodes are removed - keep trying until empty
+                let attempts = 0;
+                while (myPalette.model.nodeDataArray.length > 0 && attempts < 10) {
+                    attempts++;
+                    const remainingKeys = myPalette.model.nodeDataArray.map(n => n.key);
+                    console.warn('Warning: Some nodes were not removed. Attempt', attempts, 'Remaining:', remainingKeys);
+                    remainingKeys.forEach(key => {
+                        const existingData = myPalette.model.findNodeDataForKey(key);
+                        if (existingData) {
+                            myPalette.model.removeNodeData(existingData);
+                        }
+                    });
+                }
+                
+                if (myPalette.model.nodeDataArray.length > 0) {
+                    console.error('ERROR: Could not clear all palette nodes after', attempts, 'attempts');
+                    console.error('Remaining keys:', myPalette.model.nodeDataArray.map(n => n.key));
+                }
+                
+                // Verify visual parts are also removed
+                const remainingParts = [];
+                myPalette.nodes.each(node => {
+                    remainingParts.push(node.data.key);
+                });
+                if (remainingParts.length > 0) {
+                    console.warn('Warning: Some visual parts remain:', remainingParts);
+                    // Force remove remaining parts
+                    myPalette.nodes.each(node => {
+                        myPalette.remove(node);
+                    });
+                }
+                
+                // Add all chips using addNodeData, but check for duplicates first
+                console.log('Palette cleared, now adding', nodeDataArray.length, 'chips');
+                nodeDataArray.forEach((chipData, index) => {
+                    // Check if a node with this key already exists in model
+                    const existing = myPalette.model.findNodeDataForKey(chipData.key);
+                    if (existing) {
+                        console.error('ERROR: Node with key', chipData.key, 'already exists in model! Skipping duplicate.');
+                    } else {
+                        // Also check if a visual part with this key exists
+                        let visualPartExists = false;
+                        myPalette.nodes.each(node => {
+                            if (node.data && node.data.key === chipData.key) {
+                                visualPartExists = true;
+                            }
+                        });
+                        if (visualPartExists) {
+                            console.error('ERROR: Visual part with key', chipData.key, 'already exists! Removing it first.');
+                            myPalette.nodes.each(node => {
+                                if (node.data && node.data.key === chipData.key) {
+                                    myPalette.remove(node);
+                                }
+                            });
+                        }
+                        console.log('Adding chip', index + 1, 'of', nodeDataArray.length, ':', chipData.name, 'key:', chipData.key);
+                        myPalette.model.addNodeData(chipData);
+                    }
+                });
+                
+                myPalette.commitTransaction('update library');
+                
+                // Verify the palette has the correct number of nodes
+                const actualCount = myPalette.model.nodeDataArray.length;
+                console.log('After update - Palette model nodeDataArray length:', actualCount);
+                console.log('Expected:', nodeDataArray.length);
+                
+                // Also check for duplicate keys
+                const keys = myPalette.model.nodeDataArray.map(n => n.key);
+                const uniqueKeys = new Set(keys);
+                if (keys.length !== uniqueKeys.size) {
+                    console.error('ERROR: Duplicate keys found in palette!');
+                    const duplicates = keys.filter((key, index) => keys.indexOf(key) !== index);
+                    console.error('Duplicate keys:', duplicates);
+                }
+                
+                if (actualCount !== nodeDataArray.length) {
+                    console.error('ERROR: Palette node count mismatch! Expected:', nodeDataArray.length, 'Got:', actualCount);
+                    console.error('Palette keys:', keys);
+                }
+                
+                // Force update after transaction
+                myPalette.updateAllRelationshipsFromData();
+                
+                console.log('Palette model after update - nodeDataArray length:', myPalette.model.nodeDataArray.length);
+                console.log('Palette parts count:', myPalette.parts.count);
+                
+                // Check if nodes were created
+                let nodeCount = 0;
+                myPalette.nodes.each(node => {
+                    nodeCount++;
+                    console.log('Palette node found:', node.data.name, 'category:', node.data.category, 'key:', node.data.key);
+                    console.log('  Node visible:', node.isVisible());
+                    console.log('  Node bounds:', node.actualBounds.toString());
+                    console.log('  Node position:', node.position.toString());
+                });
+                console.log('Total nodes found:', nodeCount);
+                
+                // If no nodes, there might be a template matching issue
+                if (nodeCount === 0 && nodeDataArray.length > 0) {
+                    console.warn('No nodes created from data!');
+                    console.warn('First data item category:', nodeDataArray[0].category);
+                    console.warn('Template map has this category?', myPalette.nodeTemplateMap.has(nodeDataArray[0].category));
+                }
+                
+                // Force a layout to ensure everything is visible
+                setTimeout(() => {
+                    console.log('Performing layout...');
+                    myPalette.layoutDiagram(true);
+                    console.log('After layout - Palette parts count:', myPalette.parts.count);
+                    console.log('After layout - Palette nodes count:', myPalette.nodes.count);
+                    console.log('Palette document bounds:', myPalette.documentBounds.toString());
+                    console.log('Palette viewport bounds:', myPalette.viewportBounds.toString());
+                    
+                    // Check node visibility again after layout
+                    myPalette.nodes.each(node => {
+                        console.log('Node after layout:', node.data.name, 'visible:', node.isVisible(), 'bounds:', node.actualBounds.toString());
+                    });
+                    
+                    // If still no parts, try to manually create a part from the first data item
+                    if (myPalette.parts.count === 0 && nodeDataArray.length > 0) {
+                        console.warn('No parts rendered! Attempting manual part creation...');
+                        const firstData = nodeDataArray[0];
+                        const template = myPalette.nodeTemplateMap.get(firstData.category) || myPalette.nodeTemplate;
+                        if (template) {
+                            console.log('Template found, attempting to create part manually');
+                            const part = template.copy();
+                            if (part) {
+                                part.data = firstData;
+                                myPalette.add(part);
+                                console.log('Manually added part, new count:', myPalette.parts.count);
+                            }
+                        } else {
+                            console.error('No template found for category:', firstData.category);
+                        }
+                    }
+                }, 100);
+                
+                // Verify library size hasn't changed (this function should NOT modify chipLibrary)
+                if (chipLibrary.length !== librarySizeBeforeUpdate) {
+                    console.error('CRITICAL ERROR: updateLibraryDisplay modified chipLibrary! Before:', librarySizeBeforeUpdate, 'After:', chipLibrary.length);
+                    console.error('This should NEVER happen - updateLibraryDisplay should only read from chipLibrary');
+                }
+            } catch (error) {
+                console.error('Error updating library display:', error);
+                alert('Error updating library: ' + error.message);
+            }
+        }
+        
+        // Handle external objects dropped from palette
+        myDiagram.addDiagramListener('ExternalObjectsDropped', (e) => {
+            const node = e.diagram.selection.first();
+            if (node && node.category === 'chip') {
+                // Find the library chip by matching the key
+                const libraryChip = chipLibrary.find(c => c.id === node.data.key);
+                if (libraryChip) {
+                    // Create a new instance with chipId and instanceId
+                    instanceCounter++;
+                    const newChipData = {
+                        key: 'instance_' + instanceCounter,
+                        chipId: libraryChip.id, // Fixed library chip ID
+                        instanceId: instanceCounter, // Unique instance number
+                        category: 'chip',
+                        name: libraryChip.name,
+                        pins: libraryChip.pins.map(p => ({ number: p.number, name: p.name || '' })),
+                        orientation: libraryChip.orientation || 'vertical',
+                        loc: node.location.toString()
+                    };
+                    // Remove the dropped node and add the new instance
+                    e.diagram.model.removeNodeData(node.data);
+                    e.diagram.model.addNodeData(newChipData);
+                }
+            }
+        });
+        
+        // Update pin table when chip is selected
+        function updatePinTable() {
+            const selection = myDiagram.selection;
+            const node = selection.first();
+            
+            // Update delete button state
+            const deleteBtn = document.getElementById('deleteChipBtn');
+            if (deleteBtn) {
+                if (node && node.category === 'chip') {
+                    deleteBtn.disabled = false;
+                } else {
+                    deleteBtn.disabled = true;
+                }
+            }
+            
+            if (node && node.category === 'chip') {
+                selectedChipNode = node;
+                populatePinTable(node.data);
+            } else {
+                selectedChipNode = null;
+                document.getElementById('pinTableContainer').innerHTML = 
+                    '<div class="no-selection">Select a chip to manage pins</div>';
+            }
+        }
+        
+        // Delete selected chip from canvas (keeps it in library)
+        function deleteSelectedChip() {
+            const selection = myDiagram.selection;
+            const firstSelected = selection.first();
+            
+            if (!firstSelected || !(firstSelected instanceof go.Node) || firstSelected.category !== 'chip') {
+                alert('Please select a chip to delete');
+                return;
+            }
+            
+            // Confirm deletion
+            if (!confirm('Delete this chip from the canvas? (It will remain in the library)')) {
+                return;
+            }
+            
+            // Remove the chip from the diagram (not from library)
+            myDiagram.commit(() => {
+                myDiagram.model.removeNodeData(firstSelected.data);
+            }, 'delete chip from canvas');
+            
+            console.log('Deleted chip from canvas:', firstSelected.data.name, 'chipId:', firstSelected.data.chipId);
+            
+            // Clear selection and update UI
+            myDiagram.clearSelection();
+            updatePinTable();
+        }
+        
+        // Populate pin table
+        function populatePinTable(chipData) {
+            const container = document.getElementById('pinTableContainer');
+            const pins = chipData.pins || [];
+            
+            let html = '<div class="chip-info">';
+            if (chipData.chipId) {
+                html += `<div class="chip-info-item"><strong>Chip ID:</strong> ${chipData.chipId}</div>`;
+            } else {
+                html += `<div class="chip-info-item"><strong>Chip ID:</strong> <em>Not from library</em></div>`;
+            }
+            if (chipData.instanceId) {
+                html += `<div class="chip-info-item"><strong>Instance:</strong> ${chipData.instanceId}</div>`;
+            } else {
+                html += `<div class="chip-info-item"><strong>Instance:</strong> <em>N/A</em></div>`;
+            }
+            html += '</div>';
+            
+            html += '<div class="chip-name-editor">';
+            html += '<label for="chipNameEditor">Chip Name:</label>';
+            html += `<input type="text" id="chipNameEditor" value="${chipData.name || ''}" `;
+            html += `onchange="updateChipName(this.value)" `;
+            html += `placeholder="Enter chip name" />`;
+            html += '</div>';
+            
+            html += '<table class="pin-table">';
+            html += '<thead><tr><th>Pin #</th><th>Name</th><th>Action</th></tr></thead>';
+            html += '<tbody>';
+            
+            pins.forEach((pin, index) => {
+                html += '<tr>';
+                html += `<td class="pin-number">${pin.number}</td>`;
+                html += `<td><input type="text" value="${pin.name || ''}" `;
+                html += `onchange="updatePinName(${pin.number}, this.value)" `;
+                html += `placeholder="Pin ${pin.number} name" /></td>`;
+                html += `<td><button class="btn-remove-pin" onclick="removePin(${pin.number})">Remove</button></td>`;
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table>';
+            
+            const canAddPin = pins.length < 100;
+            html += `<button class="btn-add-pin" ${canAddPin ? '' : 'disabled'} `;
+            html += `onclick="addPin()">${canAddPin ? '+ Add Pin' : 'Maximum pins reached (100)'}</button>`;
+            
+            container.innerHTML = html;
+        }
+        
+        // Update chip name
+        function updateChipName(newName) {
+            if (!selectedChipNode) return;
+            
+            const chipData = selectedChipNode.data;
+            const oldName = chipData.name;
+            
+            if (!newName || newName.trim() === '') {
+                alert('Chip name cannot be empty');
+                document.getElementById('chipNameEditor').value = oldName;
+                return;
+            }
+            
+            myDiagram.commit(() => {
+                chipData.name = newName.trim();
+                myDiagram.model.setDataProperty(chipData, 'name', chipData.name);
+            }, 'update chip name');
+            
+            // Update library entry if this chip is from the library
+            updateLibraryEntryForChip(chipData);
+        }
+        
+        // Update pin name
+        function updatePinName(pinNumber, name) {
+            if (!selectedChipNode) return;
+            
+            const chipData = selectedChipNode.data;
+            console.log('updatePinName called for pin', pinNumber, 'chipId:', chipData.chipId, 'chip name:', chipData.name);
+            
+            const pin = chipData.pins.find(p => p.number === pinNumber);
+            if (pin) {
+                myDiagram.commit(() => {
+                    pin.name = name;
+                    myDiagram.model.setDataProperty(chipData, 'pins', chipData.pins);
+                }, 'update pin name');
+                
+                // Update library entry if this chip is from the library
+                // Only update if chipId exists (chip is from library)
+                if (chipData.chipId) {
+                    console.log('Updating library entry for chip with chipId:', chipData.chipId);
+                    updateLibraryEntryForChip(chipData);
+                } else {
+                    console.log('Chip has no chipId, not updating library');
+                }
+            }
+        }
+        
+        // Find and update the library entry for a chip, then update all instances
+        function updateLibraryEntryForChip(chipData) {
+            // If chip doesn't have a chipId, it's not from the library (e.g., sample chip)
+            if (!chipData.chipId) {
+                console.log('Chip has no chipId, skipping library update:', chipData.name);
+                console.log('Chip data:', JSON.stringify(chipData, null, 2));
+                return;
+            }
+            
+            console.log('=== updateLibraryEntryForChip START ===');
+            console.log('Updating library entry for chipId:', chipData.chipId, 'chip name:', chipData.name);
+            console.log('Current library size:', chipLibrary.length);
+            console.log('Library chip IDs:', JSON.stringify(chipLibrary.map(c => ({ id: c.id, name: c.name })), null, 2));
+            
+            // CRITICAL: Record library size at start - it should NEVER increase
+            const librarySizeAtStart = chipLibrary.length;
+            
+            // Check for duplicates in chipLibrary BEFORE updating
+            const duplicateCheck = chipLibrary.filter(c => c.id === chipData.chipId);
+            if (duplicateCheck.length > 1) {
+                console.error('ERROR: Found', duplicateCheck.length, 'entries with chipId:', chipData.chipId);
+                console.error('Duplicate entries:', JSON.stringify(duplicateCheck, null, 2));
+                // Remove all but the first one
+                const firstIndex = chipLibrary.findIndex(c => c.id === chipData.chipId);
+                chipLibrary.splice(0, chipLibrary.length, ...chipLibrary.filter((c, idx) => 
+                    c.id !== chipData.chipId || idx === firstIndex
+                ));
+                console.error('Removed duplicates, library now has', chipLibrary.length, 'chips');
+                
+                // CRITICAL: Verify library size hasn't changed (should only decrease if duplicates removed)
+                if (chipLibrary.length > librarySizeAtStart) {
+                    console.error('CRITICAL: Library size increased during duplicate removal!', librarySizeAtStart, '->', chipLibrary.length);
+                    // Restore original size
+                    while (chipLibrary.length > librarySizeAtStart) {
+                        const removed = chipLibrary.pop();
+                        console.error('Removed accidentally added chip:', removed.id, removed.name);
+                    }
+                }
+            }
+            
+            // Find library chip by chipId (the fixed library ID)
+            const libraryChipIndex = chipLibrary.findIndex(c => c.id === chipData.chipId);
+            
+            if (libraryChipIndex === -1) {
+                console.error('ERROR: Could not find library entry for chipId:', chipData.chipId);
+                console.error('Chip data:', JSON.stringify(chipData, null, 2));
+                console.error('Available chip IDs:', chipLibrary.map(c => ({ id: c.id, name: c.name })));
+                console.error('NOT creating a new chip - this should never happen!');
+                console.error('Skipping library update to prevent creating duplicate chips.');
+                alert('Warning: Could not find library entry for this chip. Library update skipped to prevent duplicates.');
+                // DO NOT create a new chip - just return
+                return;
+            }
+            
+            // CRITICAL: Verify library size hasn't changed
+            if (chipLibrary.length !== librarySizeAtStart) {
+                console.error('CRITICAL: Library size changed before update!', librarySizeAtStart, '->', chipLibrary.length);
+                // Restore original size
+                while (chipLibrary.length > librarySizeAtStart) {
+                    const removed = chipLibrary.pop();
+                    console.error('Removed accidentally added chip:', removed.id, removed.name);
+                }
+            }
+            
+            console.log('Found library chip at index:', libraryChipIndex, 'name:', chipLibrary[libraryChipIndex].name);
+            
+            // Get the library chip and update it
+            const libraryChip = chipLibrary[libraryChipIndex];
+            const oldName = libraryChip.name;
+            
+            // Create updated chip data
+            const updatedChip = {
+                id: libraryChip.id, // Keep the same ID
+                name: chipData.name,
+                pins: chipData.pins.map(p => ({ number: p.number, name: p.name || '' })),
+                orientation: libraryChip.orientation || 'vertical'
+            };
+            
+            // Update chip in library using file-based system (only updates that chip's file)
+            if (!updateChipInLibrary(updatedChip)) {
+                console.error('Failed to update chip in library');
+                return;
+            }
+            
+            // Get the updated chip from library (it's already updated in memory)
+            const updatedLibraryChip = chipLibrary[libraryChipIndex];
+            
+            console.log('Library entry updated for chip:', oldName, '->', updatedLibraryChip.name, 'chipId:', updatedLibraryChip.id);
+            console.log('Library size after update:', chipLibrary.length);
+            
+            // Update ALL instances of this chip on the canvas by chipId
+            myDiagram.startTransaction('update all instances');
+            let instanceCount = 0;
+            myDiagram.nodes.each(node => {
+                if (node.category === 'chip' && node.data.chipId === updatedLibraryChip.id) {
+                    // Update the data object directly
+                    node.data.name = updatedLibraryChip.name;
+                    node.data.pins = updatedLibraryChip.pins.map(p => ({ number: p.number, name: p.name || '' }));
+                    
+                    // Notify the model of the changes - this will trigger bindings to update
+                    myDiagram.model.setDataProperty(node.data, 'name', updatedLibraryChip.name);
+                    myDiagram.model.setDataProperty(node.data, 'pins', node.data.pins);
+                    
+                    instanceCount++;
+                    console.log('Updated instance:', node.data.instanceId, 'for chip:', updatedLibraryChip.name);
+                }
+            });
+            myDiagram.commitTransaction('update all instances');
+            
+            // Force all nodes to update their bindings after transaction
+            myDiagram.nodes.each(node => {
+                if (node.category === 'chip' && node.data.chipId === updatedLibraryChip.id) {
+                    node.updateTargetBindings();
+                }
+            });
+            
+            console.log(`Updated ${instanceCount} instance(s) of chip:`, updatedLibraryChip.name);
+            
+            // Update the palette display (this should NOT modify chipLibrary)
+            updateLibraryDisplay();
+        }
+        
+        // Add pin
+        function addPin() {
+            if (!selectedChipNode) return;
+            
+            const chipData = selectedChipNode.data;
+            const pins = chipData.pins || [];
+            
+            if (pins.length >= 100) {
+                alert('Maximum of 100 pins allowed');
+                return;
+            }
+            
+            const newPinNumber = pins.length > 0 ? Math.max(...pins.map(p => p.number)) + 1 : 1;
+            
+            console.log('addPin called for chip:', chipData.name, 'chipId:', chipData.chipId);
+            console.log('Library size before addPin:', chipLibrary.length);
+            
+            myDiagram.commit(() => {
+                pins.push({
+                    number: newPinNumber,
+                    name: ''
+                });
+                myDiagram.model.setDataProperty(chipData, 'pins', pins);
+            }, 'add pin');
+            
+            // Update library entry if this chip is from the library
+            // Only update if chipId exists (chip is from library)
+            if (chipData.chipId) {
+                console.log('addPin: Updating library entry for chip with chipId:', chipData.chipId);
+                updateLibraryEntryForChip(chipData);
+            } else {
+                console.log('addPin: Chip has no chipId, not updating library');
+            }
+            
+            console.log('addPin: Library size after update:', chipLibrary.length);
+            
+            populatePinTable(chipData);
+        }
+        
+        // Remove pin
+        function removePin(pinNumber) {
+            if (!selectedChipNode) return;
+            
+            const chipData = selectedChipNode.data;
+            const pins = chipData.pins || [];
+            
+            const pinIndex = pins.findIndex(p => p.number === pinNumber);
+            if (pinIndex === -1) return;
+            
+            // Find all links connected to this pin - they will dangle after pin removal
+            const node = myDiagram.findNodeForKey(chipData.key);
+            const portId = String(pinNumber);
+            const linksToUpdate = [];
+            
+            if (node) {
+                node.findLinksConnected(portId).each(link => {
+                    linksToUpdate.push(link.data);
+                });
+            }
+            
+            myDiagram.commit(() => {
+                // Remove the pin
+                pins.splice(pinIndex, 1);
+                myDiagram.model.setDataProperty(chipData, 'pins', pins);
+                
+                // Update links to remove port references - links will dangle
+                linksToUpdate.forEach(linkData => {
+                    if (linkData.fromPort === portId) {
+                        myDiagram.model.setDataProperty(linkData, 'fromPort', null);
+                    }
+                    if (linkData.toPort === portId) {
+                        myDiagram.model.setDataProperty(linkData, 'toPort', null);
+                    }
+                });
+            }, 'remove pin');
+            
+            // Update library entry if this chip is from the library
+            updateLibraryEntryForChip(chipData);
+            
+            populatePinTable(chipData);
+        }
+        
+        // ===== FILE-BASED STORAGE SYSTEM =====
+        // Each chip is stored in its own "file" (localStorage key) to prevent duplicates
+        
+        // Save a single chip to its own "file" in localStorage
+        function saveChipFile(chip) {
+            try {
+                const chipKey = STORAGE_KEY_CHIP_PREFIX + chip.id;
+                localStorage.setItem(chipKey, JSON.stringify(chip));
+                console.log('Saved chip file:', chipKey, 'name:', chip.name);
+            } catch (error) {
+                console.error('Error saving chip file:', chip.id, error);
+            }
+        }
+        
+        // Load a single chip from its "file" in localStorage
+        function loadChipFile(chipId) {
+            try {
+                const chipKey = STORAGE_KEY_CHIP_PREFIX + chipId;
+                const stored = localStorage.getItem(chipKey);
+                if (stored) {
+                    return JSON.parse(stored);
+                }
+                return null;
+            } catch (error) {
+                console.error('Error loading chip file:', chipId, error);
+                return null;
+            }
+        }
+        
+        // Save the master index (list of all chip IDs)
+        function saveLibraryIndex() {
+            try {
+                const chipIds = chipLibrary.map(chip => chip.id);
+                localStorage.setItem(STORAGE_KEY_LIBRARY_INDEX, JSON.stringify(chipIds));
+                console.log('Saved library index with', chipIds.length, 'chip IDs');
+            } catch (error) {
+                console.error('Error saving library index:', error);
+            }
+        }
+        
+        // Load the master index and rebuild chipLibrary from individual chip files
+        function loadChipLibrary() {
+            try {
+                // Load the master index
+                const indexStored = localStorage.getItem(STORAGE_KEY_LIBRARY_INDEX);
+                if (!indexStored) {
+                    chipLibrary = [];
+                    console.log('No library index found, starting with empty library');
+                    return;
+                }
+                
+                const chipIds = JSON.parse(indexStored);
+                console.log('Loading library index with', chipIds.length, 'chip IDs');
+                
+                // Load each chip from its individual file
+                chipLibrary = [];
+                chipIds.forEach(chipId => {
+                    const chip = loadChipFile(chipId);
+                    if (chip) {
+                        chipLibrary.push(chip);
+                    } else {
+                        console.warn('Chip file not found for ID:', chipId, '- removing from index');
+                    }
+                });
+                
+                // Clean up index if some chips were missing
+                if (chipLibrary.length !== chipIds.length) {
+                    console.warn('Some chips were missing, updating index');
+                    saveLibraryIndex();
+                }
+                
+                console.log('Library loaded with', chipLibrary.length, 'chips from individual files');
+            } catch (error) {
+                console.error('Error loading library:', error);
+                chipLibrary = [];
+            }
+        }
+        
+        // Add a chip to the library (creates a new file and updates index)
+        function addChipToLibrary(chip) {
+            // Check if chip already exists
+            const existingIndex = chipLibrary.findIndex(c => c.id === chip.id);
+            if (existingIndex !== -1) {
+                console.error('ERROR: Chip with ID', chip.id, 'already exists in library!');
+                return false;
+            }
+            
+            // Add to in-memory array
+            chipLibrary.push(chip);
+            
+            // Save chip to its own file
+            saveChipFile(chip);
+            
+            // Update master index
+            saveLibraryIndex();
+            
+            console.log('Added chip to library:', chip.id, chip.name);
+            return true;
+        }
+        
+        // Update a chip in the library (updates only that chip's file)
+        function updateChipInLibrary(chip) {
+            // Find chip in library
+            const existingIndex = chipLibrary.findIndex(c => c.id === chip.id);
+            if (existingIndex === -1) {
+                console.error('ERROR: Chip with ID', chip.id, 'not found in library!');
+                console.error('Available chip IDs:', chipLibrary.map(c => ({ id: c.id, name: c.name })));
+                console.error('DO NOT create a new chip - this is an update operation!');
+                return false;
+            }
+            
+            // Verify we're not accidentally creating a duplicate
+            const duplicateCount = chipLibrary.filter(c => c.id === chip.id).length;
+            if (duplicateCount > 1) {
+                console.error('ERROR: Found', duplicateCount, 'entries with ID', chip.id, '- removing duplicates');
+                // Keep only the first one
+                const firstIndex = chipLibrary.findIndex(c => c.id === chip.id);
+                chipLibrary.splice(0, chipLibrary.length, ...chipLibrary.filter((c, idx) => 
+                    c.id !== chip.id || idx === firstIndex
+                ));
+                // Update the index we're using
+                const newIndex = chipLibrary.findIndex(c => c.id === chip.id);
+                if (newIndex !== -1) {
+                    chipLibrary[newIndex] = chip;
+                    saveChipFile(chip);
+                    console.log('Updated chip in library after removing duplicates:', chip.id, chip.name);
+                    return true;
+                }
+                return false;
+            }
+            
+            // Update in-memory array
+            chipLibrary[existingIndex] = chip;
+            
+            // Update chip file (only this chip's file is modified)
+            saveChipFile(chip);
+            
+            // Index doesn't need updating (chip ID hasn't changed)
+            console.log('Updated chip in library:', chip.id, chip.name);
+            return true;
+        }
+        
+        // Legacy function for backward compatibility (now uses file system)
+        function saveChipLibrary() {
+            // Save all chips to their individual files and update index
+            chipLibrary.forEach(chip => {
+                saveChipFile(chip);
+            });
+            saveLibraryIndex();
+            console.log('Saved all', chipLibrary.length, 'chips to individual files');
+        }
+        
+        // Save diagram to localStorage
+        // Show save diagram dialog
+        function saveDiagram() {
+            showSaveDiagramDialog();
+        }
+        
+        // Show save diagram dialog
+        function showSaveDiagramDialog() {
+            document.getElementById('saveDiagramModal').style.display = 'block';
+            document.getElementById('diagramNameInput').value = '';
+            document.getElementById('diagramNameInput').focus();
+        }
+        
+        // Close save diagram dialog
+        function closeSaveDiagramDialog() {
+            document.getElementById('saveDiagramModal').style.display = 'none';
+        }
+        
+        // Save diagram with name
+        function saveDiagramWithName() {
+            const nameInput = document.getElementById('diagramNameInput');
+            const diagramName = nameInput.value.trim();
+            
+            if (!diagramName) {
+                alert('Please enter a diagram name');
+                nameInput.focus();
+                return;
+            }
+            
+            try {
+                // Get existing diagrams
+                let diagrams = {};
+                const stored = localStorage.getItem(STORAGE_KEY_DIAGRAMS);
+                if (stored) {
+                    diagrams = JSON.parse(stored);
+                }
+                
+                // Save the current diagram
+                const diagramData = myDiagram.model.toJson();
+                diagrams[diagramName] = {
+                    name: diagramName,
+                    data: diagramData,
+                    savedAt: new Date().toISOString()
+                };
+                
+                localStorage.setItem(STORAGE_KEY_DIAGRAMS, JSON.stringify(diagrams));
+                console.log('Diagram saved as:', diagramName);
+                alert('Diagram "' + diagramName + '" saved successfully!');
+                closeSaveDiagramDialog();
+            } catch (e) {
+                console.error('Error saving diagram:', e);
+                alert('Error saving diagram: ' + e.message);
+            }
+        }
+        
+        // Show load diagram dialog
+        function loadDiagram() {
+            showLoadDiagramDialog();
+        }
+        
+        // Show load diagram dialog
+        function showLoadDiagramDialog() {
+            const modal = document.getElementById('loadDiagramModal');
+            modal.style.display = 'block';
+            populateSavedDiagramsList();
+        }
+        
+        // Close load diagram dialog
+        function closeLoadDiagramDialog() {
+            document.getElementById('loadDiagramModal').style.display = 'none';
+        }
+        
+        // Populate the list of saved diagrams
+        function populateSavedDiagramsList() {
+            const listContainer = document.getElementById('savedDiagramsList');
+            
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY_DIAGRAMS);
+                if (!stored) {
+                    listContainer.innerHTML = '<div class="no-selection">No saved diagrams found</div>';
+                    return;
+                }
+                
+                const diagrams = JSON.parse(stored);
+                const diagramNames = Object.keys(diagrams);
+                
+                if (diagramNames.length === 0) {
+                    listContainer.innerHTML = '<div class="no-selection">No saved diagrams found</div>';
+                    return;
+                }
+                
+                let html = '<div style="display: flex; flex-direction: column; gap: 8px;">';
+                diagramNames.forEach(name => {
+                    const diagram = diagrams[name];
+                    const savedDate = diagram.savedAt ? new Date(diagram.savedAt).toLocaleString() : 'Unknown date';
+                    html += '<div style="padding: 10px; border: 1px solid #bdc3c7; border-radius: 4px; background: white; cursor: pointer;" ';
+                    html += `onclick="loadDiagramByName('${name}')" `;
+                    html += `onmouseover="this.style.background='#ecf0f1'" `;
+                    html += `onmouseout="this.style.background='white'">`;
+                    html += `<div style="font-weight: bold; margin-bottom: 4px;">${name}</div>`;
+                    html += `<div style="font-size: 12px; color: #7f8c8d;">Saved: ${savedDate}</div>`;
+                    html += '</div>';
+                });
+                html += '</div>';
+                listContainer.innerHTML = html;
+            } catch (e) {
+                console.error('Error loading diagram list:', e);
+                listContainer.innerHTML = '<div class="no-selection">Error loading saved diagrams</div>';
+            }
+        }
+        
+        // Load a diagram by name
+        function loadDiagramByName(diagramName) {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY_DIAGRAMS);
+                if (!stored) {
+                    alert('No saved diagrams found');
+                    return;
+                }
+                
+                const diagrams = JSON.parse(stored);
+                if (!diagrams[diagramName]) {
+                    alert('Diagram not found: ' + diagramName);
+                    return;
+                }
+                
+                const diagramData = diagrams[diagramName].data;
+                myDiagram.model = go.Model.fromJson(diagramData);
+                
+                // Initialize instance counter based on existing instances
+                let maxInstanceId = 0;
+                myDiagram.nodes.each(node => {
+                    if (node.category === 'chip' && node.data.instanceId) {
+                        maxInstanceId = Math.max(maxInstanceId, node.data.instanceId);
+                    }
+                });
+                instanceCounter = maxInstanceId;
+                console.log('Initialized instance counter to:', instanceCounter);
+                console.log('Diagram loaded:', diagramName);
+                
+                closeLoadDiagramDialog();
+                alert('Diagram "' + diagramName + '" loaded successfully!');
+            } catch (e) {
+                console.error('Error loading diagram:', e);
+                alert('Error loading diagram: ' + e.message);
+            }
+        }
+        
+        // Add a sample chip to the canvas for testing
+        function addSampleChipToCanvas() {
+            if (!myDiagram) {
+                console.warn('Diagram not initialized, cannot add sample chip');
+                return;
+            }
+            
+            try {
+                // Only add if diagram is empty (no saved diagram was loaded)
+                if (myDiagram.nodes.count > 0) {
+                    console.log('Diagram already has nodes, skipping sample chip');
+                    return;
+                }
+                
+                // Create a sample chip with 4 pins (not from library, so no chipId)
+                instanceCounter++;
+                const sampleChipData = {
+                    key: 'instance_' + instanceCounter,
+                    instanceId: instanceCounter,
+                    category: 'chip',
+                    name: 'Sample Chip',
+                    pins: [
+                        { number: 1, name: 'VCC' },
+                        { number: 2, name: 'GND' },
+                        { number: 3, name: 'IN' },
+                        { number: 4, name: 'OUT' }
+                    ],
+                    orientation: 'vertical',
+                    loc: '100 100' // Position on canvas
+                };
+                
+                console.log('Adding sample chip to canvas:', sampleChipData);
+                
+                myDiagram.startTransaction('add sample chip');
+                myDiagram.model.addNodeData(sampleChipData);
+                myDiagram.commitTransaction('add sample chip');
+                
+                // Find the node and center it in view
+                const node = myDiagram.findNodeForData(sampleChipData);
+                if (node) {
+                    console.log('Sample chip added successfully, node found:', node);
+                    // Center the view on the new node
+                    myDiagram.centerRect(node.actualBounds);
+                } else {
+                    console.warn('Sample chip data added but node not found');
+                }
+            } catch (error) {
+                console.error('Error adding sample chip to canvas:', error);
+            }
+        }
+        
+        // Place the selected chip from the palette onto the canvas
+        function placeSelectedChip() {
+            if (!selectedPaletteChip) {
+                console.warn('No chip selected in palette');
+                alert('Please select a chip from the library first');
+                return;
+            }
+            
+            if (!myDiagram) {
+                console.error('Diagram not initialized');
+                return;
+            }
+            
+            try {
+                // Get the center of the viewport
+                const viewportCenter = myDiagram.viewportBounds.center;
+                
+                // Find the library chip entry
+                const libraryChip = chipLibrary.find(c => c.id === selectedPaletteChip.key);
+                
+                if (!libraryChip) {
+                    console.error('Library chip not found for:', selectedPaletteChip.key);
+                    alert('Error: Library chip not found');
+                    return;
+                }
+                
+                // Create a new instance with chipId and instanceId
+                instanceCounter++;
+                const chipData = {
+                    key: 'instance_' + instanceCounter,
+                    chipId: libraryChip.id, // Fixed library chip ID
+                    instanceId: instanceCounter, // Unique instance number
+                    category: selectedPaletteChip.category,
+                    name: libraryChip.name,
+                    pins: libraryChip.pins ? libraryChip.pins.map(p => ({
+                        number: p.number,
+                        name: p.name || ''
+                    })) : [],
+                    orientation: libraryChip.orientation || 'vertical',
+                    loc: go.Point.stringify(viewportCenter)
+                };
+                
+                console.log('Placing chip on canvas:', chipData);
+                
+                myDiagram.startTransaction('place chip');
+                myDiagram.model.addNodeData(chipData);
+                myDiagram.commitTransaction('place chip');
+                
+                // Find the node and center it in view
+                const node = myDiagram.findNodeForData(chipData);
+                if (node) {
+                    console.log('Chip placed successfully, node found:', node);
+                    // Center the view on the new node
+                    myDiagram.centerRect(node.actualBounds);
+                } else {
+                    console.warn('Chip data added but node not found');
+                }
+            } catch (error) {
+                console.error('Error placing chip on canvas:', error);
+                alert('Error placing chip: ' + error.message);
+            }
+        }
+        
+        // Update zoom level
+        function updateZoom(value) {
+            if (!myDiagram) return;
+            
+            const zoomPercent = parseInt(value);
+            const zoomScale = zoomPercent / 100; // Convert percentage to scale (0.1 to 1.0)
+            
+            // Update the diagram scale
+            myDiagram.scale = zoomScale;
+            
+            // Update the display value
+            const zoomValueElement = document.getElementById('zoomValue');
+            if (zoomValueElement) {
+                zoomValueElement.textContent = zoomPercent + '%';
+            }
+            
+            console.log('Zoom updated to:', zoomPercent + '%');
+        }
+        
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            const createModal = document.getElementById('createChipModal');
+            const saveModal = document.getElementById('saveDiagramModal');
+            const loadModal = document.getElementById('loadDiagramModal');
+            
+            if (event.target === createModal) {
+                closeCreateChipDialog();
+            }
+            if (event.target === saveModal) {
+                closeSaveDiagramDialog();
+            }
+            if (event.target === loadModal) {
+                closeLoadDiagramDialog();
+            }
+        }
+        
+        // The script loader will call init() after all scripts are loaded
+        // This is just a backup in case the script loader doesn't work
+        let initCalled = false;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOMContentLoaded fired');
+            console.log('Current typeof go:', typeof go);
+            
+            // Backup: if scripts are already loaded, call init
+            if (typeof go !== 'undefined' && !initCalled) {
+                console.log('GoJS already available, calling init() as backup');
+                setTimeout(function() {
+                    if (!initCalled && typeof init === 'function') {
+                        initCalled = true;
+                        try {
+                            init();
+                        } catch (error) {
+                            console.error('Error in init() (backup):', error);
+                        }
+                    }
+                }, 500);
+            }
+        });
+    </script>
+</body>
+</html>
+

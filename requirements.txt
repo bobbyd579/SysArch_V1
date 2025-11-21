@@ -1,0 +1,4 @@
+# Python Assembly System Library
+# No external dependencies required - uses only Python standard library
+
+
